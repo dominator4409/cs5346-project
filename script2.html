@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Line chart of changes in the proportion of international students in universities</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+<label for="university-search">Enter University Name:</label>
+<input type="text" id="university-search" name="university-search">
+<button onclick="updateLineChart()">Search</button>
+<svg id="line-chart" width="800" height="500"></svg>
+
+<script>
+// load data
+let universityData = [];
+d3.csv("dataset.csv").then(function(data) {
+    universityData = data;
+});
+
+function updateLineChart() {
+    const inputName = document.getElementById("university-search").value;
+    const selectedData = universityData.filter(d => d.Name.toUpperCase() === inputName.toUpperCase());
+
+    // Data conversion, which converts data to the percentage of international students per year
+    const processedData = d3.range(2016, 2025).map(year => {
+        const record = selectedData.find(d => +d.Year === year);
+        return {
+            Year: year,
+            InternationalStudentsRatio: record ? +record.InternationalStudentsRatio : 0
+        };
+    });
+
+    drawLineChart(processedData);
+}
+
+function drawLineChart(data) {
+    const svg = d3.select("#line-chart");
+    svg.selectAll("*").remove(); // Clear previous chart
+
+    const margin = {top: 20, right: 20, bottom: 30, left: 50},
+          width = +svg.attr("width") - margin.left - margin.right,
+          height = +svg.attr("height") - margin.top - margin.bottom,
+          g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const x = d3.scaleLinear().domain([2016, 2024]).range([0, width]);
+    const y = d3.scaleLinear().domain([0, d3.max(data, d => d.InternationalStudentsRatio)]).range([height, 0]);
+
+    const line = d3.line()
+                   .x(d => x(d.Year))
+                   .y(d => y(d.InternationalStudentsRatio));
+
+    g.append("path")
+     .datum(data)
+     .attr("fill", "none")
+     .attr("stroke", "steelblue")
+     .attr("stroke-linejoin", "round")
+     .attr("stroke-linecap", "round")
+     .attr("stroke-width", 1.5)
+     .attr("d", line);
+
+    g.append("g")
+     .attr("transform", `translate(0,${height})`)
+     .call(d3.axisBottom(x).tickFormat(d3.format("d")));
+
+    g.append("g")
+     .call(d3.axisLeft(y));
+}
+</script>
+</body>
+</html>
+

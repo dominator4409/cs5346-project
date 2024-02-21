@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Visualization of university rankings</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: 120px;
+            height: auto;
+            padding: 2px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+        }
+        .legend {
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <label for="year-select">Choose a year:</label>
+    <select id="year-select">
+        <option value="all">All Years</option>
+        <option value="2016">2016</option>
+        <option value="2017">2017</option>
+        <option value="2018">2018</option>
+        <option value="2019">2019</option>
+        <option value="2020">2020</option>
+        <option value="2021">2021</option>
+        <option value="2022">2022</option>
+        <option value="2023">2023</option>
+        <option value="2024">2024</option>
+    </select>
+</div>
+<svg width="1000" height="600"></svg>
+
+<script>
+d3.csv("dataset.csv").then(function(allData) {
+    const svg = d3.select("svg"),
+          margin = {top: 20, right: 120, bottom: 60, left: 60},
+          width = +svg.attr("width") - margin.left - margin.right,
+          height = +svg.attr("height") - margin.top - margin.bottom,
+          g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    const x = d3.scaleLinear().range([0, width]),
+          y = d3.scaleLinear().range([height, 0]),
+          color = d3.scaleOrdinal(d3.schemeCategory10);
+
+    // Axis setup
+    const xAxis = g.append("g")
+                   .attr("transform", "translate(0," + height + ")"),
+          yAxis = g.append("g");
+
+    // Axis labels
+    xAxis.append("text")
+         .attr("fill", "#000")
+         .attr("y", 35)
+         .attr("x", width / 2)
+         .attr("text-anchor", "middle")
+         .text("Students to Staff Ratio");
+
+    yAxis.append("text")
+         .attr("fill", "#000")
+         .attr("transform", "rotate(-90)")
+         .attr("y", -50)
+         .attr("x", -height / 2)
+         .attr("dy", "1em")
+         .attr("text-anchor", "middle")
+         .text("Overall Score");
+
+    // Tooltip setup
+    const tooltip = d3.select("body").append("div").attr("class", "tooltip");
+
+    // Legend setup
+    const legend = svg.append("g")
+                      .attr("class", "legend")
+                      .attr("transform", "translate(" + (width + margin.left + 20) + ", " + margin.top + ")");
+    
+    // Function to update the chart
+    function updateChart(year) {
+        const data = year === "all" ? allData : allData.filter(d => d.Year === year);
+
+        // Update scale domains
+        x.domain(d3.extent(data, d => +d["Students to Staff Ratio"])).nice();
+        y.domain(d3.extent(data, d => +d["Overall Score"])).nice();
+
+        // Update axes
+        xAxis.call(d3.axisBottom(x));
+        yAxis.call(d3.axisLeft(y));
+
+        // Bind data to circles
+        const dots = g.selectAll(".dot")
+                       .data(data, d => d.Name);
+
+        // Remove old dots
+        dots.exit().remove();
+
+        // Add new dots
+        dots.enter().append("circle")
+            .attr("class", "dot")
+            .merge(dots) // Merge new and existing dots
+            .attr("r", 3.5)
+            .attr("cx", d => x(+d["Students to Staff Ratio"]))
+            .attr("cy", d => y(+d["Overall Score"]))
+            .style("fill", d => color(d.Country));
+
+        // Update the legend
+        var legendEntries = legend.selectAll('g')
+            .data(color.domain(), d => d);
+
+        // Remove old legend entries
+        legendEntries.exit().remove();
+
+        // Create new legend entries
+        var newEntries = legendEntries.enter()
+            .append('g')
+            .attr('transform', (d, i) => `translate(0, ${i * 20})`);
+
+        newEntries.append('rect')
+            .attr('width', 18)
+            .attr('height', 18)
+            .style('fill', color);
+
+        newEntries.append('text')
+            .attr('x', 24)
+            .attr('y', 9)
+            .attr('dy', '.35em')
+            .style('text-anchor', 'start')
+            .text(d => d);
+
+        // Tooltip functionality
+        g.selectAll(".dot")
+            .on("mouseover", function(event, d) {
+                tooltip.transition()
+                       .duration(200)
+                       .style("opacity", .9);
+                tooltip.html("Name: " + d.Name + "<br/>Rank: " + d.Rank + "<br/>Country: " + d.Country + "<br/>Student to Staff Ratio: " + d["Students to Staff Ratio"] + "<br/>Overall Score: " + d["Overall Score"])
+                       .style("left", (event.pageX) + "px")
+                       .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function(d) {
+                tooltip.transition()
+                       .duration(500)
+                       .style("opacity", 0);
+            });
+    }
+
+    // Listen to selection change
+    d3.select("#year-select").on("change", function() {
+        var selectedYear = d3.select(this).property('value');
+        updateChart(selectedYear);
+    });
+
+    // Initialize chart with "all" years selected
+    updateChart("all");
+});
+</script>
+</body>
+</html>

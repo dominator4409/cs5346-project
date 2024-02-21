@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+        <style>
+            body, html {
+                height: 100%;
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                position: relative;
+            }
+            .text-top {
+                position: absolute;
+                top: 0;
+                transform: translateY(-1%);
+            }
+            .text-bottom {
+                position: absolute;
+                bottom: 0;
+                transform: translateY(50%);
+            }
+            .text-left {
+                position: absolute;
+                left: 0;
+                transform: translateX(-100%);
+            }
+            .text-right {
+                position: absolute;
+                right: 0;
+                transform: translateX(100%);
+            }
+        </style>
+    </head>
+    <body>
+    
+    <div class="text-top">Industry Impact</div>
+    <div class="text-bottom">Research Quality</div>
+    <div class="text-left">Research Environment</div>
+    <div class="text-right">International Outlook</div>
+    <div id="radarChart" style="padding-left: 10px; padding-top: 10px;">
+<head>
+    <title>College grading radar chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .radarArea {
+            fill: steelblue;
+            fill-opacity: 0.5;
+        }
+        .radarStroke {
+            fill: none;
+            stroke: black;
+            stroke-width: 1;
+        }
+    </style>
+</head>
+<body>
+    <label for="university">University:</label>
+    <input type="text" id="university" name="university">
+    <label for="year">Year:</label>
+    <input type="text" id="year" name="year">
+    <button onclick="updateRadarChart()">Search</button>
+    <div id="radarChart"></div>
+
+    <script>
+        let universityData = [];
+
+        // Load data
+        d3.csv("dataset.csv").then(function(data) {
+            universityData = data;
+        });
+
+        function updateRadarChart() {
+            const universityName = document.getElementById("university").value;
+            const year = document.getElementById("year").value;
+
+            // Filter data by institution name and year
+            const filteredData = universityData.filter(d => d.Name === universityName && d.Year === year);
+
+            if (filteredData.length > 0) {
+                const radarData = [{
+                    axis: "Industry Impact",
+                    value: parseFloat(filteredData[0]["Industry Impact"])
+                }, {
+                    axis: "International Outlook",
+                    value: parseFloat(filteredData[0]["International Outlook"])
+                }, {
+                    axis: "Research Quality",
+                    value: parseFloat(filteredData[0]["Research Quality"])
+                }, {
+                    axis: "Research Environment",
+                    value: parseFloat(filteredData[0]["Research Environment"])
+                }];
+
+                drawRadarChart(radarData);
+            } else {
+                alert("No data found for the specified university and year.");
+            }
+        }
+
+        function drawRadarChart(data) {
+            // Set the canvas size and radar map radius
+            const width = 1000,
+                  height = 1000,
+                  radius = Math.min(width, height) / 2 - 40;
+        
+            const svg = d3.select("#radarChart").append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .append("g")
+                .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+        
+            // Create the radial scale of the radar map
+            const rScale = d3.scaleLinear()
+                .domain([0, 100]) 
+                .range([0, radius]);
+        
+            // Calculate the Angle of each axis
+            const angleSlice = Math.PI * 2 / data.length;
+        
+            // Build a radar line generator
+            const radarLine = d3.lineRadial()
+                .curve(d3.curveLinearClosed)
+                .radius(d => rScale(d.value))
+                .angle((d, i) => i * angleSlice);
+        
+            // Map radar area
+            svg.append("path")
+                .datum(data)
+                .attr("class", "radarArea")
+                .attr("d", radarLine)
+                .style("fill", "steelblue")
+                .style("fill-opacity", 0.3);
+        
+        }
+        
+    </script>
+</body>
+</html>
+
